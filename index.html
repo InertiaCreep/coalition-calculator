@@ -43,7 +43,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-y7znYWAZL3A1PyGIFwFayYXSgvMkJK+MyJWK4fVF8uE='; style-src 'sha256-yCmYtSpZvfao9Rwqdx2G/Eaq411QKWB3MnhHfrFvCg8='; img-src data:; connect-src https://script.google.com https://script.googleusercontent.com; font-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; object-src 'none'; media-src 'none'; manifest-src 'none'; form-action 'none'; base-uri 'none'; require-trusted-types-for 'script'; trusted-types 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-3uOm1POzy+I0RPDx5kEhovy+cFTRQ+cPUGuVodeJe9U='; style-src 'sha256-Nq3+tvaJ5cVigxbQ0t+ClYV0sF+soVVZa2bGUp0afk0='; img-src data:; connect-src https://script.google.com https://script.googleusercontent.com; font-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; object-src 'none'; media-src 'none'; manifest-src 'none'; form-action 'none'; base-uri 'none'; require-trusted-types-for 'script'; trusted-types 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex">
 <meta name="format-detection" content="telephone=no">
@@ -282,6 +282,8 @@ body{display:flex;justify-content:center;align-items:flex-start}
 #cc .sgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
 #cc .sbtn{display:flex;align-items:center;justify-content:center;min-height:48px;border-radius:999px;border:1px solid var(--fieldln);background:rgba(255,255,255,.07);color:var(--ink);font-weight:800;font-size:15px;text-decoration:none;font-family:inherit}
 #cc .sbtn:hover{border-color:var(--gold)}
+#cc .sbtn.n24{grid-column:1/-1;background:var(--gold);color:#0c1c2d;border-color:var(--gold)}
+#cc .sbtn.n24:disabled{background:rgba(228,184,20,.18);color:var(--ink);cursor:default}
 #cc .sstat{font-size:13px;color:var(--good);margin:10px 0 0;min-height:18px}
 
 
@@ -955,10 +957,10 @@ body{display:flex;justify-content:center;align-items:flex-start}
     var res = total >= need ? (total > need ? total - need + ' more than the ' + need + ' needed for a majority' : 'exactly the ' + need + ' needed for a majority') : need - total + ' short of the ' + need + ' needed for a majority';
     return 'My coalition for ' + fullName(m) + ': ' + named.join(' + ') + ' = ' + total + ' of ' + m.S + ' seats, ' + res + ' (' + Y + ' seats). Build yours with News24\'s Coalition Calculator' + (CFG.shareUrl ? ': ' + CFG.shareUrl : '.');
   }
-  function sendCopy(m, chosen, total, need, box, status) {
-    if (!CFG.collectUrl || !box || !box.checked) return;
+  function sendCopy(m, chosen, total, need, box, status, force) {
+    if (!CFG.collectUrl || (!force && (!box || !box.checked))) return;
     var key = m.id + '|' + chosen.map(function (e) { return e.key; }).sort().join(',');
-    if (SENT[key]) return; SENT[key] = 1;
+    if (SENT[key]) { if (force && status) status.textContent = 'This coalition has already been sent to News24 – thank you.'; return; } SENT[key] = 1;
     var named = chosen.filter(function (e) { return !e.ind; }).map(function (e) { return e.a + ' (' + e.s + ')'; }), ni = chosen.filter(function (e) { return e.ind; }).length;
     if (ni) named.push('Independents (' + ni + ')');
     var body = new URLSearchParams();
@@ -984,10 +986,16 @@ body{display:flex;justify-content:center;align-items:flex-start}
     if (CFG.collectUrl) {
       var lab = el('label', 'consent'); box = el('input'); box.type = 'checkbox'; box.checked = true; box.id = 'cc-consent';
       var tx = el('span'); add(tx, el('b', null, 'Add my coalition to News24\'s reader count'),
-        el('small', null, 'We\'ll tally the coalitions readers build and report on the most popular ones. Only the council and the parties you chose are sent – no name, email address or other personal details. Untick to share without sending.'));
+        el('small', null, 'We\'ll tally the coalitions readers build and report on the most popular ones. Only the council and the parties you chose are sent – no name, email address or other personal details. With this ticked, sharing anywhere below also sends us a copy. Untick to share without sending.'));
       add(lab, box, tx); sheetIn.appendChild(lab);
     }
     var g = el('div', 'sgrid');
+    if (CFG.collectUrl) {
+      var nb = el('button', 'sbtn n24', 'Send to News24'); nb.type = 'button';
+      nb.setAttribute('aria-label', 'Send your coalition to News24 only. Only the council and the parties you chose are sent.');
+      nb.addEventListener('click', function () { sendCopy(m, chosen, total, need, box, sent, true); nb.textContent = 'Sent to News24 ✓'; nb.disabled = true; });
+      g.appendChild(nb);
+    }
     function act(label, fn) { var b = el('button', 'sbtn', label); b.type = 'button'; b.addEventListener('click', function () { sendCopy(m, chosen, total, need, box, sent); fn(); }); g.appendChild(b); }
     function link(label, url) { var a = el('a', 'sbtn', label); a.setAttribute('href', url); a.setAttribute('target', '_blank'); a.setAttribute('rel', 'noopener noreferrer'); a.addEventListener('click', function () { sendCopy(m, chosen, total, need, box, sent); }); g.appendChild(a); }
     if (navigator.share) act('Share…', function () { var d = { text: text }; try { navigator.share(d).catch(function () { }); } catch (e) { } });
