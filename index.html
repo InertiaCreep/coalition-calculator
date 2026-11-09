@@ -43,7 +43,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-3uOm1POzy+I0RPDx5kEhovy+cFTRQ+cPUGuVodeJe9U='; style-src 'sha256-Nq3+tvaJ5cVigxbQ0t+ClYV0sF+soVVZa2bGUp0afk0='; img-src data:; connect-src https://script.google.com https://script.googleusercontent.com; font-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; object-src 'none'; media-src 'none'; manifest-src 'none'; form-action 'none'; base-uri 'none'; require-trusted-types-for 'script'; trusted-types 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-sWg85aTo+G7CQFh2Lac8N1kjxQOx/rWRojIm7MappZg='; style-src 'sha256-j3CnTq0mkGO+8nGWa9CdgPMcYT170XD0pcqYT7aLP8Y='; img-src data:; connect-src https://script.google.com https://script.googleusercontent.com; font-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; object-src 'none'; media-src 'none'; manifest-src 'none'; form-action 'none'; base-uri 'none'; require-trusted-types-for 'script'; trusted-types 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex">
 <meta name="format-detection" content="telephone=no">
@@ -282,8 +282,13 @@ body{display:flex;justify-content:center;align-items:flex-start}
 #cc .sgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
 #cc .sbtn{display:flex;align-items:center;justify-content:center;min-height:48px;border-radius:999px;border:1px solid var(--fieldln);background:rgba(255,255,255,.07);color:var(--ink);font-weight:800;font-size:15px;text-decoration:none;font-family:inherit}
 #cc .sbtn:hover{border-color:var(--gold)}
+#cc .sbtn.gold{grid-column:1/-1;background:var(--gold);color:#0c1c2d;border-color:var(--gold)}
 #cc .sbtn.n24{grid-column:1/-1;background:var(--gold);color:#0c1c2d;border-color:var(--gold)}
 #cc .sbtn.n24:disabled{background:rgba(228,184,20,.18);color:var(--ink);cursor:default}
+#cc .spic{margin:0 0 14px}
+#cc .spic .cardimg{display:block;width:72%;max-width:340px;margin:0 auto;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.35);-webkit-touch-callout:default}
+#cc .spic .sgrid{margin-top:12px}
+#cc .spic .note{font-size:13px;color:var(--soft);margin:8px 0 0;text-align:center}
 #cc .sstat{font-size:13px;color:var(--good);margin:10px 0 0;min-height:18px}
 
 
@@ -573,7 +578,7 @@ body{display:flex;justify-content:center;align-items:flex-start}
   }
 
   /* ---------- hemicycle: seats ordered by angle, so parties form wedges ---------- */
-  function hemicycle(m, order, colourOf) {
+  function hemiLayout(m) {
     var total = m.S, W = 640, H = 340, cx = W / 2, cy = H - 14;
     var rMax = 300, rMin = total > 150 ? 92 : total > 60 ? 110 : 128;
     var rows = Math.max(2, Math.round(Math.sqrt(total / 4.2)));
@@ -594,6 +599,11 @@ body{display:flex;justify-content:center;align-items:flex-start}
       for (var k = 0; k < c; k++) { var ang = c === 1 ? Math.PI / 2 : Math.PI - Math.PI * k / (c - 1); pts.push({ x: cx + rr * Math.cos(ang), y: cy - rr * Math.sin(ang), a: ang }); }
     });
     pts.sort(function (p, q) { return q.a - p.a || 0; });
+    return { pts: pts, dot: best.dot, W: W, H: H, cx: cx, cy: cy };
+  }
+  function seatColours(order, colourOf) { var sc = []; order.forEach(function (e) { var c = colourOf(e); for (var i = 0; i < e.s; i++) sc.push(c); }); return sc; }
+  function hemicycle(m, order, colourOf) {
+    var L = hemiLayout(m), pts = L.pts, best = { dot: L.dot }, W = L.W, H = L.H, cx = L.cx, cy = L.cy;
     var seatCols = [];
     order.forEach(function (e) { var c = colourOf(e); for (var i = 0; i < e.s; i++) seatCols.push(c); });
     var svg = sv('svg', { 'class': 'hemi', viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': m.S + ' council seats' });
@@ -974,6 +984,80 @@ body{display:flex;justify-content:center;align-items:flex-start}
         .catch(function () { if (status) status.textContent = 'We couldn\'t send a copy to News24 this time. Your share still works.'; });
     } catch (e) { }
   }
+  /* ---------- shareable picture of the reader's coalition (drawn on a canvas, nothing leaves the page) ---------- */
+  var FONT = '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif';
+  function loadImg(src) { return new Promise(function (ok) { if (!src) return ok(null); var i = new Image(); i.onload = function () { ok(i); }; i.onerror = function () { ok(null); }; i.src = src; }); }
+  function coalitionCard(m, chosen, total, need) {
+    var N = 1080, cv = document.createElement('canvas'); cv.width = N; cv.height = N;
+    var x = cv.getContext('2d'); if (!x || !window.Promise) return Promise.resolve(null);
+    var brand = root.querySelector('.land .brand');
+    return Promise.all([loadImg(brand && brand.src)].concat(chosen.map(function (e) { return loadImg(e.ind ? null : LOGO[e.n]); }))).then(function (imgs) {
+      var g = x.createRadialGradient(N * .5, N * .55, 40, N * .5, N * .55, N * .8);
+      g.addColorStop(0, '#2b4e6c'); g.addColorStop(.45, '#1c3954'); g.addColorStop(.75, '#122a41'); g.addColorStop(1, '#0b1a2a');
+      x.fillStyle = g; x.fillRect(0, 0, N, N);
+      function txt(t, X, Y, size, wt, col, align, track) {
+        x.font = wt + ' ' + size + 'px ' + FONT; x.fillStyle = col; x.textAlign = align || 'left'; x.textBaseline = 'alphabetic';
+        if ('letterSpacing' in x) x.letterSpacing = (track || 0) + 'px'; x.fillText(t, X, Y); if ('letterSpacing' in x) x.letterSpacing = '0px';
+      }
+      // header
+      if (imgs[0]) { var bw = 300, bh = bw * imgs[0].height / imgs[0].width; x.drawImage(imgs[0], 64, 56, bw, bh); }
+      txt('COALITION CALCULATOR', N - 64, 104, 26, '900', '#e4b814', 'right', 4);
+      // council name: shrink to fit, then wrap to two lines if needed
+      txt('MY COALITION FOR', 64, 210, 28, '800', '#e4b814', 'left', 4);
+      var name = fullName(m).toUpperCase(), fs = 76, lines = [name];
+      x.font = '900 ' + fs + 'px ' + FONT;
+      while (fs > 52 && x.measureText(name).width > N - 128) { fs -= 2; x.font = '900 ' + fs + 'px ' + FONT; }
+      if (x.measureText(name).width > N - 128) {
+        var w = name.split(' '), l1 = '';
+        while (w.length && x.measureText((l1 + ' ' + w[0]).trim()).width <= N - 128) l1 = (l1 + ' ' + w.shift()).trim();
+        lines = [l1, w.join(' ')];
+      }
+      lines.forEach(function (l, i) { txt(l, 64, 286 + i * (fs + 4), fs, '900', '#ffffff'); });
+      var top = 286 + (lines.length - 1) * (fs + 4) + 40;
+      // parties first (to know how much room they need): logo + name + seats, joined by +
+      var items = [], ni = 0;
+      chosen.forEach(function (e, i) { if (e.ind) ni++; else items.push({ e: e, img: imgs[i + 1], t: e.a + ' ' + e.s }); });
+      if (ni) items.push({ e: null, img: null, t: (ni === 1 ? 'Independent 1' : 'Independents ' + ni), c: IND_COL });
+      var more = 0; if (items.length > 7) { more = items.length - 6; items = items.slice(0, 6); }
+      x.font = '800 30px ' + FONT;
+      var rows = [[]], rw = [0], maxW = N - 128, pad = 18, lg = 40;
+      items.forEach(function (it) { it.w = (it.img ? lg + 2 : 0) + x.measureText(it.t).width + pad * 2; var r = rows.length - 1, add = (rows[r].length ? 44 : 0) + it.w; if (rw[r] + add > maxW && rows[r].length) { rows.push([]); rw.push(0); r++; add = it.w; } rows[r].push(it); rw[r] += add; });
+      if (more) { var mt = '+' + more + ' more', mw = x.measureText(mt).width + 10, r2 = rows.length - 1; if (rw[r2] + 54 + mw > maxW) { rows.push([]); rw.push(0); r2++; } rows[r2].push({ t: mt, w: mw, plain: true }); rw[r2] += (rows[r2].length > 1 ? 44 : 0) + mw; }
+      var chipsTop = N - 108 - rows.length * 68, vy = chipsTop - 30 - 58;
+      // seat chart: the coalition in party colours, everyone else dimmed; scaled to the room left
+      var L = hemiLayout(m), oy = Math.max(top, 330), sc = Math.min(900 / L.W, (vy - 30 - oy) / (L.cy + L.dot));
+      var ox = (N - L.W * sc) / 2, cols = seatColours(chosen, function (e) { return col(m, e); });
+      L.pts.forEach(function (p, i) { x.beginPath(); x.arc(ox + p.x * sc, oy + p.y * sc, L.dot * sc, 0, Math.PI * 2); x.fillStyle = cols[i] || 'rgba(255,255,255,.14)'; x.fill(); });
+      var base = oy + L.cy * sc;
+      x.save(); x.shadowColor = 'rgba(6,16,28,.9)'; x.shadowBlur = 18; txt(String(total), N / 2, base - 40 * sc, Math.round(66 * sc), '900', '#ffffff', 'center'); x.restore();
+      txt('OF ' + m.S + ' SEATS', N / 2, base - 4 * sc, Math.round(18 * sc), '800', '#c3cfdc', 'center', 3);
+      // verdict
+      var ok = total >= need, vt = ok ? (total > need ? 'Majority: ' + (total - need) + ' to spare' : 'Majority: exactly enough') : (need - total) + ' short of the ' + need + ' needed';
+      x.font = '800 32px ' + FONT; var vw = x.measureText(vt).width + 56;
+      x.fillStyle = ok ? 'rgba(22,149,84,.28)' : 'rgba(193,45,49,.28)'; x.strokeStyle = ok ? '#5fd39a' : '#ff8f8f'; x.lineWidth = 2;
+      x.beginPath(); if (x.roundRect) x.roundRect(N / 2 - vw / 2, vy, vw, 58, 29); else x.rect(N / 2 - vw / 2, vy, vw, 58); x.fill(); x.stroke();
+      txt(vt, N / 2, vy + 40, 32, '800', ok ? '#5fd39a' : '#ff8f8f', 'center');
+      rows.forEach(function (r, ri) {
+        var cx2 = (N - rw[ri]) / 2, yy = chipsTop + ri * 68;
+        r.forEach(function (it, k) {
+          if (k) { txt('+', cx2 + 22, yy + 40, 34, '800', '#8fa3b8', 'center'); cx2 += 44; }
+          if (it.plain) { txt(it.t, cx2 + 5, yy + 40, 30, '800', '#c3cfdc'); cx2 += it.w; return; }
+          var bg = it.e ? col(m, it.e) : it.c;
+          x.fillStyle = bg; x.beginPath(); if (x.roundRect) x.roundRect(cx2, yy, it.w, 56, 28); else x.rect(cx2, yy, it.w, 56); x.fill();
+          var tx = cx2 + pad;
+          if (it.img) { x.save(); x.beginPath(); x.arc(tx - 8 + lg / 2, yy + 28, lg / 2, 0, Math.PI * 2); x.fillStyle = '#fff'; x.fill(); x.clip(); x.drawImage(it.img, tx - 8, yy + 8, lg, lg); x.restore(); tx += lg + 2; }
+          txt(it.t, tx, yy + 39, 30, '800', it.e && it.e.a === 'MK' ? '#f2c94c' : inkFor(bg));
+          cx2 += it.w;
+        });
+      });
+      // footer
+      x.fillStyle = 'rgba(255,255,255,.1)'; x.fillRect(64, N - 92, N - 128, 1);
+      txt('Build yours: News24 Coalition Calculator' + (CFG.shareUrl ? ' · news24.com' : ''), 64, N - 46, 26, '800', '#f2f5fa', 'left');
+      txt(Y + ' seats · IEC', N - 64, N - 46, 22, '600', '#8fa3b8', 'right', 1);
+      return cv;
+    });
+  }
+
   function shareSheet(m, chosen, total, need) {
     lastFocus = document.activeElement; clear(sheetIn);
     var text = coalitionText(m, chosen, total, need);
@@ -1008,6 +1092,27 @@ body{display:flex;justify-content:center;align-items:flex-start}
       try { navigator.clipboard.writeText(text).then(function () { status.textContent = 'Copied.'; }, manual); } catch (e) { manual(); }
     });
     sheetIn.appendChild(g); sheetIn.appendChild(status); sheetIn.appendChild(sent);
+    // the picture: shown at the top, with Share image / Save image buttons once it is drawn
+    var pic = el('div', 'spic'); sheetIn.insertBefore(pic, ta);
+    var ph = el('p', 'sub', 'Making your picture…'); pic.appendChild(ph);
+    coalitionCard(m, chosen, total, need).then(function (cv) {
+      if (!cv) { pic.parentNode.removeChild(pic); return; }
+      var url = cv.toDataURL('image/png'), im = document.createElement('img'); im.className = 'cardimg'; im.src = url;
+      im.alt = coalitionText(m, chosen, total, need); clear(pic); pic.appendChild(im);
+      var row = el('div', 'sgrid'), fname = 'my-coalition-' + m.n.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.png';
+      cv.toBlob(function (blob) {
+        var file = null; try { file = blob && new File([blob], fname, { type: 'image/png' }); } catch (e) { file = null; }
+        if (file && navigator.canShare && navigator.share) { var ok2 = false; try { ok2 = navigator.canShare({ files: [file] }); } catch (e) { }
+          if (ok2) { var sbi = el('button', 'sbtn gold', 'Share picture'); sbi.type = 'button';
+            sbi.addEventListener('click', function () { sendCopy(m, chosen, total, need, box, sent); try { navigator.share({ files: [file], text: text }).catch(function () { }); } catch (e) { } });
+            row.appendChild(sbi); } }
+        var sv2 = el('a', 'sbtn', 'Save picture'); sv2.setAttribute('href', url); sv2.setAttribute('download', fname);
+        if (!row.firstChild) sv2.className = 'sbtn gold';
+        sv2.addEventListener('click', function () { sendCopy(m, chosen, total, need, box, sent); });
+        row.appendChild(sv2); pic.appendChild(row);
+        pic.appendChild(el('p', 'note', 'Or press and hold the picture to save or share it. Add it to your post with the text below.'));
+      }, 'image/png');
+    });
     sheet.classList.remove('hide'); try { x.focus(); } catch (er) { }
   }
 

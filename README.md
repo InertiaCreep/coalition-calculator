@@ -17,7 +17,7 @@ parties chosen (nothing personal) to News24's tally.
 
 ```html
 <iframe src="https://inertiacreep.github.io/coalition-calculator/" title="News24 Coalition Calculator"
-  sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"
+  sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox allow-downloads"
   allow="clipboard-write; web-share" referrerpolicy="no-referrer" loading="lazy"
   height="760" style="display:block;width:100%;border:0;height:min(820px,85vh);min-height:560px"></iframe>
 ```
