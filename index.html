@@ -43,7 +43,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-UAJ4klfp6UzqTXT0mWtBZmX7zpovdSs+Hvw2fuolk/I='; style-src 'sha256-A/2YwntKNPqt58tOU8oLS/e+ABS5+XMkiU9LHH5xqto='; img-src data:; connect-src https://script.google.com https://script.googleusercontent.com; font-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; object-src 'none'; media-src 'none'; manifest-src 'none'; form-action 'none'; base-uri 'none'; require-trusted-types-for 'script'; trusted-types 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-nSI6ud3TmyCQvsQGVUaXo25EJi9kOhpmbyt3xlhgM2Q='; style-src 'sha256-A/2YwntKNPqt58tOU8oLS/e+ABS5+XMkiU9LHH5xqto='; img-src data:; connect-src https://script.google.com https://script.googleusercontent.com; font-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; object-src 'none'; media-src 'none'; manifest-src 'none'; form-action 'none'; base-uri 'none'; require-trusted-types-for 'script'; trusted-types 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex">
 <meta name="format-detection" content="telephone=no">
@@ -1128,7 +1128,9 @@ body{display:flex;justify-content:center;align-items:flex-start}
     }
     if (navigator.share) act('Share…', function () { var d = { text: text }; try { navigator.share(d).catch(function () { }); } catch (e) { } });
     var enc = encodeURIComponent(text);
-    link('WhatsApp', 'https://api.whatsapp.com/send?text=' + enc, true);
+    // phones (including the News24 app, where WhatsApp's web hand-off page fails): open the WhatsApp app directly
+    var coarse = false; try { coarse = window.matchMedia('(pointer: coarse)').matches; } catch (e) { }
+    link('WhatsApp', (coarse ? 'whatsapp://send?text=' : 'https://api.whatsapp.com/send?text=') + enc, true);
     link('X', 'https://twitter.com/intent/tweet?text=' + enc, true);
     if (CFG.shareUrl) link('Facebook', 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(CFG.shareUrl));
     act('Copy text', function () {
