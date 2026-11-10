@@ -43,7 +43,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-mwTfbHrfZu0yoS1ds4IXPrIu/ad6pOthIJnPUgOdKSw='; style-src 'sha256-KYgS/5P/ySzOe4QlBa/tmMTgY8NfFKs86fXfOzrNQzs='; img-src data:; connect-src https://script.google.com https://script.googleusercontent.com; font-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; object-src 'none'; media-src 'none'; manifest-src 'none'; form-action 'none'; base-uri 'none'; require-trusted-types-for 'script'; trusted-types 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-AwErNIvXVfuykKeWIcJsg02Lg2Du9k9+6upKJy9VKsc='; style-src 'sha256-KYgS/5P/ySzOe4QlBa/tmMTgY8NfFKs86fXfOzrNQzs='; img-src data:; connect-src https://script.google.com https://script.googleusercontent.com; font-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; object-src 'none'; media-src 'none'; manifest-src 'none'; form-action 'none'; base-uri 'none'; require-trusted-types-for 'script'; trusted-types 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex">
 <meta name="format-detection" content="telephone=no">
@@ -1115,11 +1115,19 @@ body{display:flex;justify-content:center;align-items:flex-start}
       g.appendChild(nb);
     }
     function act(label, fn) { var b = el('button', 'sbtn', label); b.type = 'button'; b.addEventListener('click', function () { sendCopy(m, chosen, total, need, box, sent); fn(); }); g.appendChild(b); }
-    function link(label, url) { var a = el('a', 'sbtn', label); a.setAttribute('href', url); a.setAttribute('target', '_blank'); a.setAttribute('rel', 'noopener noreferrer'); a.addEventListener('click', function () { sendCopy(m, chosen, total, need, box, sent); }); g.appendChild(a); }
+    function link(label, url, paste) {
+      var a = el('a', 'sbtn', label); a.setAttribute('href', url); a.setAttribute('target', '_blank'); a.setAttribute('rel', 'noopener noreferrer');
+      a.addEventListener('click', function () {
+        sendCopy(m, chosen, total, need, box, sent);
+        // some in-app browsers open the app without the text: copy it too, so readers can paste it
+        if (paste) { try { navigator.clipboard.writeText(text).then(function () { status.textContent = 'Your text is also copied. If ' + label + ' opens without it, paste it in.'; }, function () { status.textContent = 'If ' + label + ' opens without your text, come back and tap Copy text.'; }); } catch (e) { status.textContent = 'If ' + label + ' opens without your text, come back and tap Copy text.'; } }
+      });
+      g.appendChild(a);
+    }
     if (navigator.share) act('Share…', function () { var d = { text: text }; try { navigator.share(d).catch(function () { }); } catch (e) { } });
     var enc = encodeURIComponent(text);
-    link('WhatsApp', 'https://wa.me/?text=' + enc);
-    link('X', 'https://twitter.com/intent/tweet?text=' + enc);
+    link('WhatsApp', 'https://api.whatsapp.com/send?text=' + enc, true);
+    link('X', 'https://twitter.com/intent/tweet?text=' + enc, true);
     if (CFG.shareUrl) link('Facebook', 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(CFG.shareUrl));
     act('Copy text', function () {
       function manual() { try { ta.focus(); ta.select(); } catch (e) { } status.textContent = 'Text selected – copy it with your keyboard or long-press.'; }
