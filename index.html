@@ -43,7 +43,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-AwErNIvXVfuykKeWIcJsg02Lg2Du9k9+6upKJy9VKsc='; style-src 'sha256-A/2YwntKNPqt58tOU8oLS/e+ABS5+XMkiU9LHH5xqto='; img-src data:; connect-src https://script.google.com https://script.googleusercontent.com; font-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; object-src 'none'; media-src 'none'; manifest-src 'none'; form-action 'none'; base-uri 'none'; require-trusted-types-for 'script'; trusted-types 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-UAJ4klfp6UzqTXT0mWtBZmX7zpovdSs+Hvw2fuolk/I='; style-src 'sha256-A/2YwntKNPqt58tOU8oLS/e+ABS5+XMkiU9LHH5xqto='; img-src data:; connect-src https://script.google.com https://script.googleusercontent.com; font-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; object-src 'none'; media-src 'none'; manifest-src 'none'; form-action 'none'; base-uri 'none'; require-trusted-types-for 'script'; trusted-types 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex">
 <meta name="format-detection" content="telephone=no">
@@ -984,8 +984,10 @@ body{display:flex;justify-content:center;align-items:flex-start}
     add(t, l, r2);
     add(foot, t, meter(m, chosen), el('div', 'cap', 'Majority: ' + need + ' seats · ' + plural(chosen.length, 'party', 'parties') + ' in this coalition'));
     // sharing stays off until the News24 story's address is set, so no post goes out without a link
-    var sb = el('button', 'cta share', CFG.shareUrl ? 'Share this coalition' : 'Sharing opens soon'); sb.type = 'button';
-    if (CFG.shareUrl) sb.addEventListener('click', function () { shareSheet(m, chosen, total, need); });
+    // and only once the coalition has crossed the majority line
+    var sb = el('button', 'cta share', !CFG.shareUrl ? 'Sharing opens soon' : short > 0 ? 'Add ' + plural(short, 'seat', 'seats') + ' to share' : 'Share this coalition'); sb.type = 'button';
+    if (CFG.shareUrl && short <= 0) sb.addEventListener('click', function () { shareSheet(m, chosen, total, need); });
+    else if (CFG.shareUrl) { sb.disabled = true; sb.title = 'Reach a majority (' + need + ' seats) to share your coalition.'; }
     else { sb.disabled = true; sb.title = 'You can share your coalition once the News24 story is published.'; }
     foot.appendChild(sb);
     b.scrollTop = keep;
