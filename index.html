@@ -43,7 +43,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-nSI6ud3TmyCQvsQGVUaXo25EJi9kOhpmbyt3xlhgM2Q='; style-src 'sha256-A/2YwntKNPqt58tOU8oLS/e+ABS5+XMkiU9LHH5xqto='; img-src data:; connect-src https://script.google.com https://script.googleusercontent.com; font-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; object-src 'none'; media-src 'none'; manifest-src 'none'; form-action 'none'; base-uri 'none'; require-trusted-types-for 'script'; trusted-types 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-wjbod7GYpHYFr0ekAZph1GEbyXxr5zvNVzuRuw42FEI='; style-src 'sha256-A/2YwntKNPqt58tOU8oLS/e+ABS5+XMkiU9LHH5xqto='; img-src data:; connect-src https://script.google.com https://script.googleusercontent.com; font-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; object-src 'none'; media-src 'none'; manifest-src 'none'; form-action 'none'; base-uri 'none'; require-trusted-types-for 'script'; trusted-types 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex">
 <meta name="format-detection" content="telephone=no">
@@ -1117,12 +1117,16 @@ body{display:flex;justify-content:center;align-items:flex-start}
       g.appendChild(nb);
     }
     function act(label, fn) { var b = el('button', 'sbtn', label); b.type = 'button'; b.addEventListener('click', function () { sendCopy(m, chosen, total, need, box, sent); fn(); }); g.appendChild(b); }
+    function copyText(done, fail) {
+      function legacy() { var ok = false; try { ta.readOnly = false; ta.focus(); ta.select(); ta.setSelectionRange(0, ta.value.length); ok = document.execCommand('copy'); } catch (e) { ok = false; } ta.readOnly = true; try { ta.blur(); } catch (e) { } if (ok) done(); else fail(); }
+      try { if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, legacy); else legacy(); } catch (e) { legacy(); }
+    }
     function link(label, url, paste) {
       var a = el('a', 'sbtn', label); a.setAttribute('href', url); a.setAttribute('target', '_blank'); a.setAttribute('rel', 'noopener noreferrer');
       a.addEventListener('click', function () {
         sendCopy(m, chosen, total, need, box, sent);
         // some in-app browsers open the app without the text: copy it too, so readers can paste it
-        if (paste) { try { navigator.clipboard.writeText(text).then(function () { status.textContent = 'Your text is also copied. If ' + label + ' opens without it, paste it in.'; }, function () { status.textContent = 'If ' + label + ' opens without your text, come back and tap Copy text.'; }); } catch (e) { status.textContent = 'If ' + label + ' opens without your text, come back and tap Copy text.'; } }
+        if (paste) copyText(function () { status.textContent = 'Your text is copied. If ' + label + ' doesn\'t open, open it yourself and paste the text into a chat or post.'; }, function () { status.textContent = 'If ' + label + ' doesn\'t open, select the text above, copy it and paste it into ' + label + '.'; });
       });
       g.appendChild(a);
     }
@@ -1134,8 +1138,7 @@ body{display:flex;justify-content:center;align-items:flex-start}
     link('X', 'https://twitter.com/intent/tweet?text=' + enc, true);
     if (CFG.shareUrl) link('Facebook', 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(CFG.shareUrl));
     act('Copy text', function () {
-      function manual() { try { ta.focus(); ta.select(); } catch (e) { } status.textContent = 'Text selected – copy it with your keyboard or long-press.'; }
-      try { navigator.clipboard.writeText(text).then(function () { status.textContent = 'Copied.'; }, manual); } catch (e) { manual(); }
+      copyText(function () { status.textContent = 'Copied. Paste it into WhatsApp, X or anywhere else.'; }, function () { try { ta.focus(); ta.select(); } catch (e) { } status.textContent = 'Text selected – press and hold it to copy.'; });
     });
     sheetIn.appendChild(g); sheetIn.appendChild(status); sheetIn.appendChild(sent);
     // the picture: shown at the top, with Share image / Save image buttons once it is drawn
