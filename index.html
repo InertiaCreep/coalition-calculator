@@ -43,7 +43,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-t3F8mi5uLV1M5toY0/sHOU76WifWOjHb1X1Vlc1P8qQ='; style-src 'sha256-o4tkkKQrfS5zXSiY9fL9oWuMi89EQtuA2s+Z5b419fM='; img-src data:; connect-src https://script.google.com https://script.googleusercontent.com; font-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; object-src 'none'; media-src 'none'; manifest-src 'none'; form-action 'none'; base-uri 'none'; require-trusted-types-for 'script'; trusted-types 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-mwTfbHrfZu0yoS1ds4IXPrIu/ad6pOthIJnPUgOdKSw='; style-src 'sha256-KYgS/5P/ySzOe4QlBa/tmMTgY8NfFKs86fXfOzrNQzs='; img-src data:; connect-src https://script.google.com https://script.googleusercontent.com; font-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; object-src 'none'; media-src 'none'; manifest-src 'none'; form-action 'none'; base-uri 'none'; require-trusted-types-for 'script'; trusted-types 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex">
 <meta name="format-detection" content="telephone=no">
@@ -288,6 +288,7 @@ body{display:flex;justify-content:center;align-items:flex-start}
 #cc .spic{margin:0 0 14px}
 #cc .spic .cardimg{display:block;width:72%;max-width:340px;margin:0 auto;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.35);-webkit-touch-callout:default}
 #cc .spic .sgrid{margin-top:12px}
+#cc .spic .note.hold{font-size:15px;font-weight:700;color:var(--ink)}
 #cc .spic .note{font-size:13px;color:var(--soft);margin:8px 0 0;text-align:center}
 #cc .sstat{font-size:13px;color:var(--good);margin:10px 0 0;min-height:18px}
 
@@ -1139,11 +1140,17 @@ body{display:flex;justify-content:center;align-items:flex-start}
           if (ok2) { var sbi = el('button', 'sbtn gold', 'Share picture'); sbi.type = 'button';
             sbi.addEventListener('click', function () { sendCopy(m, chosen, total, need, box, sent); try { navigator.share({ files: [file], text: text }).catch(function () { }); } catch (e) { } });
             row.appendChild(sbi); } }
-        var sv2 = el('a', 'sbtn', 'Save picture'); sv2.setAttribute('href', url); sv2.setAttribute('download', fname);
-        if (!row.firstChild) sv2.className = 'sbtn gold';
-        sv2.addEventListener('click', function () { sendCopy(m, chosen, total, need, box, sent); });
-        row.appendChild(sv2); pic.appendChild(row);
-        pic.appendChild(el('p', 'note', 'Or press and hold the picture to save or share it. Add it to your post with the text below.'));
+        // touch screens (including the News24 app, which blocks file downloads): press and hold instead of a download link
+        var touch = false; try { touch = window.matchMedia('(pointer: coarse)').matches; } catch (e) { }
+        if (!touch) {
+          var sv2 = el('a', 'sbtn', 'Save picture'); sv2.setAttribute('href', url); sv2.setAttribute('download', fname);
+          if (!row.firstChild) sv2.className = 'sbtn gold';
+          sv2.addEventListener('click', function () { sendCopy(m, chosen, total, need, box, sent); });
+          row.appendChild(sv2);
+        }
+        if (row.firstChild) pic.appendChild(row);
+        if (touch) { im.addEventListener('contextmenu', function () { sendCopy(m, chosen, total, need, box, sent); }); }
+        pic.appendChild(el('p', touch ? 'note hold' : 'note', touch ? (row.firstChild ? 'Or press and hold the picture to save it. Add it to your post with the text below.' : 'Press and hold the picture to save or share it, then add it to your post with the text below.') : 'Or press and hold the picture to save or share it. Add it to your post with the text below.'));
       }, 'image/png');
     });
     sheet.classList.remove('hide'); try { x.focus(); } catch (er) { }
