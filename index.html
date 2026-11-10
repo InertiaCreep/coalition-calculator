@@ -43,7 +43,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-wjbod7GYpHYFr0ekAZph1GEbyXxr5zvNVzuRuw42FEI='; style-src 'sha256-A/2YwntKNPqt58tOU8oLS/e+ABS5+XMkiU9LHH5xqto='; img-src data:; connect-src https://script.google.com https://script.googleusercontent.com; font-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; object-src 'none'; media-src 'none'; manifest-src 'none'; form-action 'none'; base-uri 'none'; require-trusted-types-for 'script'; trusted-types 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-mTaQtuKEMcynqAWP6Ee5EIOvcH43CMh4pxo/GJFTPRU='; style-src 'sha256-5tsJjhilMkttS+ejWgYYWzhPH0a1A8AFdBmYw5eKUvM='; img-src data:; connect-src https://script.google.com https://script.googleusercontent.com; font-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; object-src 'none'; media-src 'none'; manifest-src 'none'; form-action 'none'; base-uri 'none'; require-trusted-types-for 'script'; trusted-types 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex">
 <meta name="format-detection" content="telephone=no">
@@ -285,6 +285,9 @@ body{display:flex;justify-content:center;align-items:flex-start}
 #cc .sbtn.gold{grid-column:1/-1;background:var(--gold);color:#0c1c2d;border-color:var(--gold)}
 #cc .sbtn.n24{grid-column:1/-1;background:var(--gold);color:#0c1c2d;border-color:var(--gold)}
 #cc .sbtn.n24:disabled{background:rgba(228,184,20,.18);color:var(--ink);cursor:default}
+#cc .sgrid.one{margin:4px 0 6px}
+#cc .sgrid.one.solo{grid-template-columns:1fr}
+#cc .sgrid.one .sbtn.gold{grid-column:auto}
 #cc .spic{margin:0 0 14px}
 #cc .spic .cardimg{display:block;width:72%;max-width:340px;margin:0 auto;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.35);-webkit-touch-callout:default}
 #cc .spic .sgrid{margin-top:12px}
@@ -1109,64 +1112,73 @@ body{display:flex;justify-content:center;align-items:flex-start}
         el('small', null, 'We\'ll tally the coalitions readers build and report on the most popular ones. Only the council and the parties you chose are sent – no name, email address or other personal details. With this ticked, sharing anywhere below also sends us a copy. Untick to share without sending.'));
       add(lab, box, tx); sheetIn.appendChild(lab);
     }
-    var g = el('div', 'sgrid');
-    if (CFG.collectUrl) {
-      var nb = el('button', 'sbtn n24', 'Send to News24'); nb.type = 'button';
-      nb.setAttribute('aria-label', 'Send your coalition to News24 only. Only the council and the parties you chose are sent.');
-      nb.addEventListener('click', function () { sendCopy(m, chosen, total, need, box, sent, true); nb.textContent = 'Sent to News24 ✓'; nb.disabled = true; });
-      g.appendChild(nb);
-    }
-    function act(label, fn) { var b = el('button', 'sbtn', label); b.type = 'button'; b.addEventListener('click', function () { sendCopy(m, chosen, total, need, box, sent); fn(); }); g.appendChild(b); }
     function copyText(done, fail) {
       function legacy() { var ok = false; try { ta.readOnly = false; ta.focus(); ta.select(); ta.setSelectionRange(0, ta.value.length); ok = document.execCommand('copy'); } catch (e) { ok = false; } ta.readOnly = true; try { ta.blur(); } catch (e) { } if (ok) done(); else fail(); }
       try { if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, legacy); else legacy(); } catch (e) { legacy(); }
     }
-    function link(label, url, paste) {
-      var a = el('a', 'sbtn', label); a.setAttribute('href', url); a.setAttribute('target', '_blank'); a.setAttribute('rel', 'noopener noreferrer');
-      a.addEventListener('click', function () {
-        sendCopy(m, chosen, total, need, box, sent);
-        // some in-app browsers open the app without the text: copy it too, so readers can paste it
-        if (paste) copyText(function () { status.textContent = 'Your text is copied. If ' + label + ' doesn\'t open, open it yourself and paste the text into a chat or post.'; }, function () { status.textContent = 'If ' + label + ' doesn\'t open, select the text above, copy it and paste it into ' + label + '.'; });
-      });
-      g.appendChild(a);
+    var touch = false; try { touch = window.matchMedia('(pointer: coarse)').matches; } catch (e) { }
+    var file = null, url = null, fname = 'news24-my-coalition-' + m.n.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.png';
+    function fallbackMsg() {
+      var how = touch ? 'Press and hold the picture to save it' : 'Save the picture';
+      copyText(function () { status.textContent = 'Your text is copied. ' + how + ', then share both in WhatsApp, X or anywhere else.'; },
+        function () { status.textContent = how + ', then copy the text below and share both anywhere.'; });
     }
-    if (navigator.share) act('Share…', function () { var d = { text: text }; try { navigator.share(d).catch(function () { }); } catch (e) { } });
-    var enc = encodeURIComponent(text);
-    // phones (including the News24 app, where WhatsApp's web hand-off page fails): open the WhatsApp app directly
-    var coarse = false; try { coarse = window.matchMedia('(pointer: coarse)').matches; } catch (e) { }
-    link('WhatsApp', (coarse ? 'whatsapp://send?text=' : 'https://api.whatsapp.com/send?text=') + enc, true);
-    link('X', 'https://twitter.com/intent/tweet?text=' + enc, true);
-    if (CFG.shareUrl) link('Facebook', 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(CFG.shareUrl));
-    act('Copy text', function () {
+
+    // one simple Share button: the phone's own share sheet with the picture and text, like Manifesto Match
+    var main = el('div', 'sgrid one');
+    var sb = el('button', 'sbtn gold', 'Share'); sb.type = 'button';
+    sb.addEventListener('click', function () {
+      sendCopy(m, chosen, total, need, box, sent);
+      if (!navigator.share) { fallbackMsg(); return; }
+      var d = { text: text, title: 'News24 Coalition Calculator' }, withFile = false;
+      try { withFile = !!(file && navigator.canShare && navigator.canShare({ files: [file] })); } catch (e) { withFile = false; }
+      if (withFile) d.files = [file];
+      try {
+        navigator.share(d).catch(function (e) {
+          if (e && e.name === 'AbortError') return;
+          if (withFile) { try { navigator.share({ text: text, title: d.title }).catch(function (e2) { if (!(e2 && e2.name === 'AbortError')) fallbackMsg(); }); return; } catch (e3) { } }
+          fallbackMsg();
+        });
+      } catch (e) { fallbackMsg(); }
+    });
+    var cb = el('button', 'sbtn', 'Copy text'); cb.type = 'button';
+    cb.addEventListener('click', function () {
+      sendCopy(m, chosen, total, need, box, sent);
       copyText(function () { status.textContent = 'Copied. Paste it into WhatsApp, X or anywhere else.'; }, function () { try { ta.focus(); ta.select(); } catch (e) { } status.textContent = 'Text selected – press and hold it to copy.'; });
     });
-    sheetIn.appendChild(g); sheetIn.appendChild(status); sheetIn.appendChild(sent);
-    // the picture: shown at the top, with Share image / Save image buttons once it is drawn
+    if (navigator.share) add(main, sb, cb); else { cb.className = 'sbtn gold'; main.className = 'sgrid one solo'; add(main, cb); }
+
+    // computers without a share sheet: the usual links and a download
+    var extra = el('div', 'sgrid');
+    if (!navigator.share && !touch) {
+      var enc = encodeURIComponent(text);
+      [['WhatsApp', 'https://api.whatsapp.com/send?text=' + enc], ['X', 'https://twitter.com/intent/tweet?text=' + enc], ['Facebook', CFG.shareUrl ? 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(CFG.shareUrl) : null]].forEach(function (l) {
+        if (!l[1]) return;
+        var a = el('a', 'sbtn', l[0]); a.setAttribute('href', l[1]); a.setAttribute('target', '_blank'); a.setAttribute('rel', 'noopener noreferrer');
+        a.addEventListener('click', function () { sendCopy(m, chosen, total, need, box, sent); }); extra.appendChild(a);
+      });
+    }
+    if (CFG.collectUrl) {
+      var nb = el('button', 'sbtn n24', 'Send to News24 only'); nb.type = 'button';
+      nb.setAttribute('aria-label', 'Send your coalition to News24 only. Only the council and the parties you chose are sent.');
+      nb.addEventListener('click', function () { sendCopy(m, chosen, total, need, box, sent, true); nb.textContent = 'Sent to News24 ✓'; nb.disabled = true; });
+      extra.appendChild(nb);
+    }
+    // order: picture, Share + Copy, status, text, News24 box, extras
     var pic = el('div', 'spic'); sheetIn.insertBefore(pic, ta);
+    sheetIn.insertBefore(main, ta); sheetIn.insertBefore(status, ta);
+    sheetIn.appendChild(extra); sheetIn.appendChild(sent);
     var ph = el('p', 'sub', 'Making your picture…'); pic.appendChild(ph);
     coalitionCard(m, chosen, total, need).then(function (cv) {
       if (!cv) { pic.parentNode.removeChild(pic); return; }
-      var url = cv.toDataURL('image/png'), im = document.createElement('img'); im.className = 'cardimg'; im.src = url;
-      im.alt = coalitionText(m, chosen, total, need); clear(pic); pic.appendChild(im);
-      var row = el('div', 'sgrid'), fname = 'my-coalition-' + m.n.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.png';
-      cv.toBlob(function (blob) {
-        var file = null; try { file = blob && new File([blob], fname, { type: 'image/png' }); } catch (e) { file = null; }
-        if (file && navigator.canShare && navigator.share) { var ok2 = false; try { ok2 = navigator.canShare({ files: [file] }); } catch (e) { }
-          if (ok2) { var sbi = el('button', 'sbtn gold', 'Share picture'); sbi.type = 'button';
-            sbi.addEventListener('click', function () { sendCopy(m, chosen, total, need, box, sent); try { navigator.share({ files: [file], text: text }).catch(function () { }); } catch (e) { } });
-            row.appendChild(sbi); } }
-        // touch screens (including the News24 app, which blocks file downloads): press and hold instead of a download link
-        var touch = false; try { touch = window.matchMedia('(pointer: coarse)').matches; } catch (e) { }
-        if (!touch) {
-          var sv2 = el('a', 'sbtn', 'Save picture'); sv2.setAttribute('href', url); sv2.setAttribute('download', fname);
-          if (!row.firstChild) sv2.className = 'sbtn gold';
-          sv2.addEventListener('click', function () { sendCopy(m, chosen, total, need, box, sent); });
-          row.appendChild(sv2);
-        }
-        if (row.firstChild) pic.appendChild(row);
-        if (touch) { im.addEventListener('contextmenu', function () { sendCopy(m, chosen, total, need, box, sent); }); }
-        pic.appendChild(el('p', touch ? 'note hold' : 'note', touch ? (row.firstChild ? 'Or press and hold the picture to save it. Add it to your post with the text below.' : 'Press and hold the picture to save or share it, then add it to your post with the text below.') : 'Or press and hold the picture to save or share it. Add it to your post with the text below.'));
-      }, 'image/png');
+      url = cv.toDataURL('image/png'); var im = document.createElement('img'); im.className = 'cardimg'; im.src = url;
+      im.alt = text; clear(pic); pic.appendChild(im);
+      if (touch) { im.addEventListener('contextmenu', function () { sendCopy(m, chosen, total, need, box, sent); }); if (!navigator.share) pic.appendChild(el('p', 'note hold', 'Press and hold the picture to save it, then copy the text and share both.')); }
+      cv.toBlob(function (blob) { try { file = blob && new File([blob], fname.replace(/\.png$/, '.jpg'), { type: 'image/jpeg' }); } catch (e) { file = null; } }, 'image/jpeg', 0.92);
+      if (!touch) {
+        var sv2 = el('a', 'sbtn', 'Save picture'); sv2.setAttribute('href', url); sv2.setAttribute('download', fname);
+        sv2.addEventListener('click', function () { sendCopy(m, chosen, total, need, box, sent); }); extra.insertBefore(sv2, extra.firstChild);
+      }
     });
     sheet.classList.remove('hide'); try { x.focus(); } catch (er) { }
   }
